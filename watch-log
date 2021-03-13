@@ -1,0 +1,48 @@
+#!/usr/local/bin/python3
+
+import time
+import pync
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+class Watcher:
+    def __init__(self, path):
+        self.observer = Observer()
+        self.path = path
+
+    def run(self):
+        objEventHandler = EventHandler()
+        self.observer.schedule(objEventHandler, self.path, recursive=True)
+        self.observer.start()
+        try:
+            while True:
+                time.sleep(1)
+        except:
+            self.observer.stop()
+            print("Error")
+
+        self.observer.join()
+
+class EventHandler(FileSystemEventHandler):
+    def on_modified(self, event):
+        print("Got it!")
+        filename = event.src_path.split("/")[-1]
+
+        intLine = 1        
+        strExe = '~/bin/phpstorm --line ' + str(intLine) + ' ' + event.src_path
+        print(strExe)
+
+        #pync.notify('Hello World', execute='say "OMG"')
+        pync.notify('Hello World', title=filename, execute=strExe)
+
+
+
+if __name__ == "__main__":
+    #path = "/tmp"
+    #objWatcher = Watcher(path)
+    #objWatcher.run()
+
+    path = "/Users/wiebe/repos/genotool/src/storage/logs"
+    objWatcher = Watcher(path)
+    objWatcher.run()
+

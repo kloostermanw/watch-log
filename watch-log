@@ -2,22 +2,31 @@
 
 import time
 import pync
+import argparse
+import json
+import os.path
+
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
 class Watcher:
-    def __init__(self, path):
+    def __init__(self, arrPath):
         self.observer = Observer()
-        self.path = path
+        self.paths = arrPath
 
     def run(self):
+        threads = []
         objEventHandler = EventHandler()
-        self.observer.schedule(objEventHandler, self.path, recursive=True)
+
+        for path in arrPath:
+            self.observer.schedule(objEventHandler, path, recursive=True)
+            threads.append(self.observer)
+
         self.observer.start()
         try:
             while True:
                 time.sleep(1)
-        except:
+        except KeyboardInterrupt:
             self.observer.stop()
             print("Error")
 
@@ -30,19 +39,38 @@ class EventHandler(FileSystemEventHandler):
 
         intLine = 1        
         strExe = '~/bin/phpstorm --line ' + str(intLine) + ' ' + event.src_path
-        print(strExe)
 
-        #pync.notify('Hello World', execute='say "OMG"')
         pync.notify('Hello World', title=filename, execute=strExe)
 
-
-
 if __name__ == "__main__":
-    #path = "/tmp"
-    #objWatcher = Watcher(path)
-    #objWatcher.run()
+    parser = argparse.ArgumentParser(description='Watch some directories for logfiles.')
+    parser.add_argument('-l', action="store_true", default=False)
+    parser.add_argument('--path', metavar='path', type=str, help='add path to list')
+    parser.add_argument('-r', action="store_true", default=False)
+                        
+    args = parser.parse_args()
+    home = os.path.expanduser("~")
 
-    path = "/Users/wiebe/repos/genotool/src/storage/logs"
-    objWatcher = Watcher(path)
-    objWatcher.run()
+    strConfigFile = home + '/.watch-log.json'
+    arrPath = []
+
+    if os.path.isfile(strConfigFile):
+        with open(strConfigFile, 'r') as filehandle:
+            arrPath = json.load(filehandle)
+
+    if (args.l):
+        print(arrPath)
+
+    elif (args.path is not None):
+        print(args.path)
+        arrPath.append(args.path)
+        with open(strConfigFile, 'w+') as filehandle:
+            json.dump(arrPath, filehandle)
+
+    elif (args.r):
+        objWatcher1 = Watcher(arrPath)
+        objWatcher1.run()
+
+    else:
+        parser.print_usage
 
